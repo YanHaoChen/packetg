@@ -52,7 +52,7 @@ l3_addr->dst_addr = "10.0.0.2";
 Initialize the socket of generator.
 
 ```c
-	generator = init_packet_generator();
+generator = init_packet_generator();
 ```
 
 ##### step 4
@@ -61,8 +61,8 @@ Select the interface you want to use, and get this struct(`sockaddr_ll`) which w
 > This struct will bind a destination MAC which is equal to `l2_addr->dst_addr `.
 
 ```c
-	struct sockaddr_ll this_sockaddr;
-	this_sockaddr = set_interface_and_get_binding_addr(generator, "eth0", l2_addr);
+struct sockaddr_ll this_sockaddr;
+this_sockaddr = set_interface_and_get_binding_addr(generator, "eth0", l2_addr);
 ```
 ##### step 5
 Push L2, L3 and UDP fields into this packet.
