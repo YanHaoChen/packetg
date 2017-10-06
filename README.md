@@ -29,19 +29,19 @@ memset(packet, 0, 1024);
 // Full in fields of L2
 l2_addr = (struct mac_addr*)malloc(sizeof(struct mac_addr));
 
-(l2_addr->src_addr)[0] = 0x00;
+(l2_addr->src_addr)[0] = 0x01;
 (l2_addr->src_addr)[1] = 0x00;
 (l2_addr->src_addr)[2] = 0x00;
 (l2_addr->src_addr)[3] = 0x00;
 (l2_addr->src_addr)[4] = 0x00;
-(l2_addr->src_addr)[5] = 0x01;
+(l2_addr->src_addr)[5] = 0x00;
 
-(l2_addr->dst_addr)[0] = 0x00;
+(l2_addr->dst_addr)[0] = 0x02;
 (l2_addr->dst_addr)[1] = 0x00;
 (l2_addr->dst_addr)[2] = 0x00;
 (l2_addr->dst_addr)[3] = 0x00;
 (l2_addr->dst_addr)[4] = 0x00;
-(l2_addr->dst_addr)[5] = 0x02;
+(l2_addr->dst_addr)[5] = 0x00;
 
 l2_addr->ether_type = ETH_P_IP;
 
