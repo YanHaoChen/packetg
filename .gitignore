@@ -3,3 +3,4 @@
 Vagrantfile
 a.out
 *.swp
+.vscode*

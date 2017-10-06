@@ -10,22 +10,25 @@ Follow those steps, and you will know how to use this library to send a packet!
 Include this header(packetg.h).
 
 ```c
-#include "packetg.h"
+#include "src/packetg.h"
 ```
 ##### step 2
-Prepare some variables(L2, L3) for sending a packet.
+Prepare some variables(L2, L3 and L4) for sending a packet.
 
 ```c
 // Store socket descriptor.
 int generator;
 struct mac_addr *l2_addr;
 struct ip_addr *l3_addr;
+struct udp_addr *l4_addr;
+
 // Initialize the packet which will be sent.
 char packet[1024];
 memset(packet, 0, 1024);
 
 // Full in fields of L2
 l2_addr = (struct mac_addr*)malloc(sizeof(struct mac_addr));
+
 (l2_addr->src_addr)[0] = 0x00;
 (l2_addr->src_addr)[1] = 0x00;
 (l2_addr->src_addr)[2] = 0x00;
@@ -40,10 +43,19 @@ l2_addr = (struct mac_addr*)malloc(sizeof(struct mac_addr));
 (l2_addr->dst_addr)[4] = 0x00;
 (l2_addr->dst_addr)[5] = 0x02;
 
+l2_addr->ether_type = ETH_P_IP;
+
 // Full in fields of L3
 l3_addr = (struct ip_addr*)malloc(sizeof(struct ip_addr));
 l3_addr->src_addr = "10.0.0.1";
 l3_addr->dst_addr = "10.0.0.2";
+
+l3_addr->protocol = IPPROTO_UDP;
+
+// Full in fields of L4
+l4_addr = (struct udp_addr*)malloc(sizeof(struct udp_addr));
+l4_addr->src_port = 1234;
+l4_addr->dst_port = 4321;
 
 ```
 
@@ -70,11 +82,9 @@ Push L2, L3 and UDP fields into this packet.
 ```c
 int header_size = 0;
 header_size += push_l2_field(packet, l2_addr);
-header_size += push_l3_field(packet, l3_addr, 17);
-header_size += push_udp_field(packet, 1234, 5678);
+header_size += push_l3_field(packet, l3_addr);
+header_size += push_udp_field(packet, l4_addr);
 ```
-
-> "17" means UDP.
 
 ##### step 6
 
