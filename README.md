@@ -1,4 +1,10 @@
 # A Library of Packet Generator 
+
+This library for making generating packet easy.
+
+
+## Example
+
 > For Linux
 
 Follow those steps, and you will know how to use this library to send a packet!
