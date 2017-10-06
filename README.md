@@ -2,10 +2,9 @@
 
 This library for making generating packet easy.
 
+> For Linux
 
 ## Example
-
-> For Linux
 
 Follow those steps, and you will know how to use this library to send a packet!
 
