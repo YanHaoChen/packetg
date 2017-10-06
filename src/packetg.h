@@ -2,6 +2,7 @@
 #include <netinet/ether.h>
 #include <netinet/ip.h>
 
+#define MAX_PACKET_LENGTH 8192
 
 #define L2_HEADER 14
 #define L3_HEADER 20
@@ -39,10 +40,16 @@ struct udp_addr{
     unsigned short dst_port;
 };
 
+struct packet_payload{
+    char *content;
+    unsigned short len;
+};
+
 struct packet_seed{
     char *packet;
+    unsigned short header_len;
+    unsigned short total_len;
     int generator;
-    int len;
     struct sockaddr_ll binding;
 };
 
@@ -57,9 +64,10 @@ unsigned short cal_checksum(unsigned short *buf, int header_size);
 int init_packet_generator(void);    
 struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interface_name , struct mac_addr *addr);
 
-int push_l2_field(char *packet, struct mac_addr *addr);
-int push_l3_field(char *packet, struct ip_addr *addr);
-int push_udp_field(char *packet, struct udp_addr *addr);
+unsigned short push_l2_field(char *packet, struct mac_addr *addr);
+unsigned short push_l3_field(char *packet, struct ip_addr *addr);
+unsigned short push_udp_field(char *packet, struct udp_addr *addr);
+unsigned short push_payload(char *packet, unsigned short header_len, struct packet_payload *payload);
 
 int package_l3_packet(struct packet_seed *seed);
 int package_udp_packet_without_checksum(struct packet_seed *seed);

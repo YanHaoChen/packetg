@@ -33,10 +33,16 @@ struct udp_addr{
     unsigned short dst_port;
 };
 
+struct packet_payload{
+    char *content;
+    unsigned short len;
+};
+
 struct packet_seed{
     char *packet;
+    unsigned short header_len;
+    unsigned short total_len;
     int generator;
-    int len;
     struct sockaddr_ll binding;
 };
 
@@ -171,31 +177,37 @@ int push_udp_field(char *packet, struct udp_addr *addr){
     return UDP_HEADER;
 }
 
+unsigned short push_payload(char *packet, unsigned short header_len, struct packet_payload *payload){
+    char *packet_header_end = packet + header_len;
+    strncpy(packet_header_end, payload->content, payload->len);
+    return (header_len + payload->len);
+}
+
 /* Package packet */
 
 int package_l3_packet(struct packet_seed *seed){
     struct ip *l3_header = (struct ip *)(seed->packet + L2_HEADER);
-    l3_header->ip_len = htons(seed->len - L2_HEADER);
+    l3_header->ip_len = htons(seed->total_len - L2_HEADER);
     l3_header->ip_sum = cal_checksum((unsigned short *)l3_header, L3_HEADER);
 }
 
 int package_udp_packet_without_checksum(struct packet_seed *seed){
     struct ip *l3_header = (struct ip *)(seed->packet + L2_HEADER);
-    l3_header->ip_len = htons(seed->len - L2_HEADER);
+    l3_header->ip_len = htons(seed->total_len - L2_HEADER);
     l3_header->ip_sum = cal_checksum((unsigned short *)l3_header, L3_HEADER);
     
     struct udphdr *udp_header = (struct udphdr *)(seed->packet + L2_HEADER + L3_HEADER);
-    int udp_len = seed->len - L2_HEADER - L3_HEADER;
+    int udp_len = seed->total_len - L2_HEADER - L3_HEADER;
     udp_header->uh_ulen = htons(udp_len);
 }
 
 int package_udp_packet_with_checksum(struct packet_seed *seed){
     struct ip *l3_header = (struct ip *)(seed->packet + L2_HEADER);
-    l3_header->ip_len = htons(seed->len - L2_HEADER);
+    l3_header->ip_len = htons(seed->total_len - L2_HEADER);
     l3_header->ip_sum = cal_checksum((unsigned short *)l3_header, L3_HEADER);
     
     struct udphdr *udp_header = (struct udphdr *)(seed->packet + L2_HEADER + L3_HEADER);
-    int udp_len = (unsigned short)seed->len - L2_HEADER - L3_HEADER;
+    int udp_len = (unsigned short)seed->total_len - L2_HEADER - L3_HEADER;
     udp_header->uh_ulen =htons(udp_len);
     struct presudo_header *presudo_hdr;
     presudo_hdr = (struct presudo_header *)malloc(sizeof(struct presudo_header));
@@ -209,7 +221,7 @@ int package_udp_packet_with_checksum(struct packet_seed *seed){
 /* Send */
 
 int send_packet(struct packet_seed *seed){
-    if (sendto(seed->generator, seed->packet, seed->len, 0, (struct sockaddr*)&seed->binding, sizeof(struct sockaddr_ll)) < 0){
+    if (sendto(seed->generator, seed->packet, seed->total_len, 0, (struct sockaddr*)&seed->binding, sizeof(struct sockaddr_ll)) < 0){
         return 0;
     } else {
         return 1;
