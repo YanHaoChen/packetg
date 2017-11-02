@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 // struct ifreq, IFNAMSIZ
 #include <net/if.h>
+
+// struct of packet header
 #include <netinet/ether.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
@@ -17,18 +19,37 @@
 #define L3_HEADER 20
 #define UDP_HEADER 8
 
-struct mac_addr{
+struct mac_field{
     unsigned char src_addr[6];
     unsigned char dst_addr[6];
     unsigned short ether_type;
 };
-struct ip_addr{
+
+struct arp_header{
+    unsigned short hw_type;
+    unsigned short protocol;
+    unsigned char addr_len;
+    unsigned char protocol_addr_len;
+    unsigned short opcode;
+    unsigned char sender_hw_addr[6];
+    struct in_addr sender_ip;
+    unsigned char target_hw_addr[6];
+    struct in_addr target_ip;
+};
+
+struct arp_field{
+    unsigned char src_addr[6];
+    unsigned char dst_addr[6];
+    unsigned short opcode;
+};
+
+struct ip_field{
     char *src_addr;
     char *dst_addr;
     unsigned char protocol;
 };
 
-struct udp_addr{
+struct udp_field{
     unsigned short src_port;
     unsigned short dst_port;
 };
@@ -109,7 +130,7 @@ int init_packet_generator(void){
     return sockfd;
 }
 
-struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interface_name , struct mac_addr *addr){
+struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interface_name , struct mac_field *field){
     struct ifreq if_id;
     struct sockaddr_ll bind_addr;   
     memset(&if_id, 0, sizeof(struct ifreq));
@@ -119,12 +140,12 @@ struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interfac
         perror("Setting interface: error\n");
     }
 
-    bind_addr.sll_addr[0] = addr->dst_addr[5];
-    bind_addr.sll_addr[1] = addr->dst_addr[4];
-    bind_addr.sll_addr[2] = addr->dst_addr[3];
-    bind_addr.sll_addr[3] = addr->dst_addr[2];
-    bind_addr.sll_addr[4] = addr->dst_addr[1];
-    bind_addr.sll_addr[5] = addr->dst_addr[0]; 
+    bind_addr.sll_addr[0] = field->dst_addr[5];
+    bind_addr.sll_addr[1] = field->dst_addr[4];
+    bind_addr.sll_addr[2] = field->dst_addr[3];
+    bind_addr.sll_addr[3] = field->dst_addr[2];
+    bind_addr.sll_addr[4] = field->dst_addr[1];
+    bind_addr.sll_addr[5] = field->dst_addr[0]; 
     
     bind_addr.sll_ifindex = if_id.ifr_ifindex;
     bind_addr.sll_halen = ETH_ALEN;
@@ -133,28 +154,33 @@ struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interfac
 
 /* Push field */
 
-int push_l2_field(char *packet, struct mac_addr *addr){
+int push_l2_field(char *packet, struct mac_field *field){
     struct ether_header *l2_header = (struct ether_header *)packet;
-    l2_header->ether_type = htons(addr->ether_type);
+    l2_header->ether_type = htons(field->ether_type);
 
-    l2_header->ether_shost[0] = addr->src_addr[5];
-    l2_header->ether_shost[1] = addr->src_addr[4];
-    l2_header->ether_shost[2] = addr->src_addr[3];
-    l2_header->ether_shost[3] = addr->src_addr[2];
-    l2_header->ether_shost[4] = addr->src_addr[1];
-    l2_header->ether_shost[5] = addr->src_addr[0];
+    l2_header->ether_shost[0] = field->src_addr[5];
+    l2_header->ether_shost[1] = field->src_addr[4];
+    l2_header->ether_shost[2] = field->src_addr[3];
+    l2_header->ether_shost[3] = field->src_addr[2];
+    l2_header->ether_shost[4] = field->src_addr[1];
+    l2_header->ether_shost[5] = field->src_addr[0];
 
-    l2_header->ether_dhost[0] = addr->dst_addr[5];
-    l2_header->ether_dhost[1] = addr->dst_addr[4];
-    l2_header->ether_dhost[2] = addr->dst_addr[3];
-    l2_header->ether_dhost[3] = addr->dst_addr[2];
-    l2_header->ether_dhost[4] = addr->dst_addr[1];
-    l2_header->ether_dhost[5] = addr->dst_addr[0]; 
+    l2_header->ether_dhost[0] = field->dst_addr[5];
+    l2_header->ether_dhost[1] = field->dst_addr[4];
+    l2_header->ether_dhost[2] = field->dst_addr[3];
+    l2_header->ether_dhost[3] = field->dst_addr[2];
+    l2_header->ether_dhost[4] = field->dst_addr[1];
+    l2_header->ether_dhost[5] = field->dst_addr[0]; 
     
     return L2_HEADER;
 }
 
-int push_l3_field(char *packet, struct ip_addr *addr){
+int push_arp_field(char *packet){
+    struct arp_header *arp_header = (struct arp_header *)(packet + L2_HEADER);
+    return 0;
+}
+
+int push_l3_field(char *packet, struct ip_field *field){
     struct ip *l3_header = (struct ip *)(packet + L2_HEADER);
     l3_header->ip_hl = 5;
     l3_header->ip_v = 4;
@@ -162,16 +188,16 @@ int push_l3_field(char *packet, struct ip_addr *addr){
     l3_header->ip_len = 0;    
     l3_header->ip_id = htons(rand());
     l3_header->ip_ttl = 255;
-    l3_header->ip_p = addr->protocol;
-    inet_aton(addr->src_addr, &l3_header->ip_src);
-	inet_aton(addr->dst_addr, &l3_header->ip_dst);
+    l3_header->ip_p = field->protocol;
+    inet_aton(field->src_addr, &l3_header->ip_src);
+	inet_aton(field->dst_addr, &l3_header->ip_dst);
     return L3_HEADER;  
 }
 
-int push_udp_field(char *packet, struct udp_addr *addr){
+int push_udp_field(char *packet, struct udp_field *field){
     struct udphdr *udp_header = (struct udphdr*)(packet+L2_HEADER+L3_HEADER);
-    udp_header->uh_sport = htons(addr->src_port);
-    udp_header->uh_dport = htons(addr->dst_port);
+    udp_header->uh_sport = htons(field->src_port);
+    udp_header->uh_dport = htons(field->dst_port);
     udp_header->uh_ulen = 0;
     udp_header->uh_sum = 0;
     return UDP_HEADER;

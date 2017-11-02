@@ -15,7 +15,7 @@ ETH_P_ARP
 ...
 Others can be found in if_ether.h.  
 */
-struct mac_addr{
+struct mac_field{
     unsigned char src_addr[6];
     unsigned char dst_addr[6];
     unsigned short ether_type;
@@ -29,13 +29,13 @@ IPPROTO_TCP 6
 Others can be found in:
 https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers 
 */
-struct ip_addr{
+struct ip_field{
     char *src_addr;
     char *dst_addr;
     unsigned char protocol;
 };
 
-struct udp_addr{
+struct udp_field{
     unsigned short src_port;
     unsigned short dst_port;
 };
@@ -63,11 +63,11 @@ struct presudo_header {
 unsigned short cal_checksum(unsigned short *buf, int header_size);
 
 int init_packet_generator(void);    
-struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interface_name , struct mac_addr *addr);
+struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interface_name , struct mac_field *field);
 
-unsigned short push_l2_field(char *packet, struct mac_addr *addr);
-unsigned short push_l3_field(char *packet, struct ip_addr *addr);
-unsigned short push_udp_field(char *packet, struct udp_addr *addr);
+unsigned short push_l2_field(char *packet, struct mac_field *field);
+unsigned short push_l3_field(char *packet, struct ip_field *field);
+unsigned short push_udp_field(char *packet, struct udp_field *field);
 unsigned short push_payload(char *packet, unsigned short header_len, struct packet_payload *payload);
 
 int package_l3_packet(struct packet_seed *seed);

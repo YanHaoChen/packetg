@@ -5,9 +5,9 @@
 
 int main(){
     int generator;
-    struct mac_addr *l2_addr;
-    struct ip_addr *l3_addr;
-    struct udp_addr *l4_addr;
+    struct mac_field *l2_field;
+    struct ip_field *l3_field;
+    struct udp_field *l4_field;
     struct packet_seed seed;
     char packet[MAX_PACKET_LENGTH];
     
@@ -15,34 +15,34 @@ int main(){
 
     /* Prepare values for headers. */
     /* L2 */
-    l2_addr = (struct mac_addr*)malloc(sizeof(struct mac_addr));
-    (l2_addr->src_addr)[0] = 0x01;
-    (l2_addr->src_addr)[1] = 0x00;
-    (l2_addr->src_addr)[2] = 0x00;
-    (l2_addr->src_addr)[3] = 0x00;
-    (l2_addr->src_addr)[4] = 0x00;
-    (l2_addr->src_addr)[5] = 0x00;
+    l2_field = (struct mac_field*)malloc(sizeof(struct mac_field));
+    (l2_field->src_addr)[0] = 0x01;
+    (l2_field->src_addr)[1] = 0x00;
+    (l2_field->src_addr)[2] = 0x00;
+    (l2_field->src_addr)[3] = 0x00;
+    (l2_field->src_addr)[4] = 0x00;
+    (l2_field->src_addr)[5] = 0x00;
 
-    (l2_addr->dst_addr)[0] = 0x02;
-    (l2_addr->dst_addr)[1] = 0x00;
-    (l2_addr->dst_addr)[2] = 0x00;
-    (l2_addr->dst_addr)[3] = 0x00;
-    (l2_addr->dst_addr)[4] = 0x00;
-    (l2_addr->dst_addr)[5] = 0x00;
+    (l2_field->dst_addr)[0] = 0x02;
+    (l2_field->dst_addr)[1] = 0x00;
+    (l2_field->dst_addr)[2] = 0x00;
+    (l2_field->dst_addr)[3] = 0x00;
+    (l2_field->dst_addr)[4] = 0x00;
+    (l2_field->dst_addr)[5] = 0x00;
 
-    l2_addr->ether_type = ETH_P_IP;
+    l2_field->ether_type = ETH_P_IP;
 
     /* L3 */
-    l3_addr = (struct ip_addr*)malloc(sizeof(struct ip_addr));
-    l3_addr->src_addr = "10.0.0.1";
-    l3_addr->dst_addr = "10.0.0.2";
+    l3_field = (struct ip_field*)malloc(sizeof(struct ip_field));
+    l3_field->src_addr = "10.0.0.1";
+    l3_field->dst_addr = "10.0.0.2";
 
-    l3_addr->protocol = IPPROTO_UDP;
+    l3_field->protocol = IPPROTO_UDP;
 
     /* L4 */
-    l4_addr = (struct udp_addr*)malloc(sizeof(struct udp_addr));
-    l4_addr->src_port = 1234;
-    l4_addr->dst_port = 4321;
+    l4_field = (struct udp_field*)malloc(sizeof(struct udp_field));
+    l4_field->src_port = 1234;
+    l4_field->dst_port = 4321;
     
     /* Setup socket */
     generator = init_packet_generator();
@@ -50,15 +50,15 @@ int main(){
     
     /* Prepare binding struct */
     struct sockaddr_ll this_sockaddr;
-    this_sockaddr = set_interface_and_get_binding_addr(generator, "enp0s3", l2_addr);
+    this_sockaddr = set_interface_and_get_binding_addr(generator, "enp0s3", l2_field);
     seed.binding = this_sockaddr;
     
     /* Prepare a packet */
     /* header */
     unsigned short packet_size = 0;
-    packet_size += push_l2_field(packet, l2_addr);
-    packet_size += push_l3_field(packet, l3_addr);
-    packet_size += push_udp_field(packet, l4_addr);
+    packet_size += push_l2_field(packet, l2_field);
+    packet_size += push_l3_field(packet, l3_field);
+    packet_size += push_udp_field(packet, l4_field);
     seed.header_len = packet_size;
 
     /* payload */
