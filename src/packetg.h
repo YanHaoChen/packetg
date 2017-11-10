@@ -20,6 +20,22 @@ struct mac_field{
     unsigned char dst_addr[6];
     unsigned short ether_type;
 };
+
+enum{
+    ARP_REQUEST=1,
+    ARP_REPLY=2,
+    RARP_REQUEST=3,
+    RARP_REPLY=4
+};
+
+struct arp_field{
+    unsigned char src_addr[6];
+    unsigned char dst_addr[6];
+    char *src_ip_addr;
+    char *dst_ip_addr;
+    unsigned short opcode;
+};
+
 /*
 protocol:
 IPPROTO_IP 0
@@ -66,6 +82,7 @@ int init_packet_generator(void);
 struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interface_name , struct mac_field *field);
 
 unsigned short push_l2_field(char *packet, struct mac_field *field);
+unsigned short push_arp_field(char *packet, struct arp_field *field);
 unsigned short push_l3_field(char *packet, struct ip_field *field);
 unsigned short push_udp_field(char *packet, struct udp_field *field);
 unsigned short push_payload(char *packet, unsigned short header_len, struct packet_payload *payload);

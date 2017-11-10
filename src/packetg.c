@@ -16,6 +16,8 @@
 #include <netinet/udp.h>
 
 #define L2_HEADER 14
+// ARP HEADER + PADDING
+#define ARP_HEADER 48
 #define L3_HEADER 20
 #define UDP_HEADER 8
 
@@ -25,7 +27,7 @@ struct mac_field{
     unsigned short ether_type;
 };
 
-struct arp_header{
+struct __attribute__((__packed__)) arp_header{
     unsigned short hw_type;
     unsigned short protocol;
     unsigned char addr_len;
@@ -37,9 +39,18 @@ struct arp_header{
     struct in_addr target_ip;
 };
 
+enum{
+    ARP_REQUEST=1,
+    ARP_REPLY=2,
+    RARP_REQUEST=3,
+    RARP_REPLY=4
+};
+
 struct arp_field{
     unsigned char src_addr[6];
     unsigned char dst_addr[6];
+    char *src_ip_addr;
+    char *dst_ip_addr;
     unsigned short opcode;
 };
 
@@ -154,7 +165,7 @@ struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interfac
 
 /* Push field */
 
-int push_l2_field(char *packet, struct mac_field *field){
+unsigned short push_l2_field(char *packet, struct mac_field *field){
     struct ether_header *l2_header = (struct ether_header *)packet;
     l2_header->ether_type = htons(field->ether_type);
 
@@ -164,12 +175,23 @@ int push_l2_field(char *packet, struct mac_field *field){
     return L2_HEADER;
 }
 
-int push_arp_field(char *packet, struct arp_field *field){
+unsigned short push_arp_field(char *packet, struct arp_field *field){
     struct arp_header *arp_header = (struct arp_header *)(packet + L2_HEADER);
-    return 0;
+    // ethernet = 1
+    arp_header->hw_type = htons(0x0001);
+    // IP
+    arp_header->protocol = htons(0x0800);
+    arp_header->addr_len = 6;
+    arp_header->protocol_addr_len = 4;
+    arp_header->opcode = htons(field->opcode);
+    mac_addr_a_to_b_net(field->src_addr ,arp_header->sender_hw_addr); 
+    inet_aton(field->src_ip_addr, &arp_header->sender_ip);
+    mac_addr_a_to_b_net(field->dst_addr ,arp_header->target_hw_addr); 
+    inet_aton(field->dst_ip_addr, &arp_header->target_ip);
+    return ARP_HEADER;
 }
 
-int push_l3_field(char *packet, struct ip_field *field){
+unsigned short push_l3_field(char *packet, struct ip_field *field){
     struct ip *l3_header = (struct ip *)(packet + L2_HEADER);
     l3_header->ip_hl = 5;
     l3_header->ip_v = 4;
@@ -183,7 +205,7 @@ int push_l3_field(char *packet, struct ip_field *field){
     return L3_HEADER;  
 }
 
-int push_udp_field(char *packet, struct udp_field *field){
+unsigned short push_udp_field(char *packet, struct udp_field *field){
     struct udphdr *udp_header = (struct udphdr*)(packet+L2_HEADER+L3_HEADER);
     udp_header->uh_sport = htons(field->src_port);
     udp_header->uh_dport = htons(field->dst_port);
