@@ -61,7 +61,7 @@ struct presudo_header {
 };
 
 unsigned short cal_checksum(unsigned short *buf, int header_size);
-
+void mac_addr_a_to_b_net(unsigned char *a_addr, unsigned char *b_net_addr);
 int init_packet_generator(void);    
 struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interface_name , struct mac_field *field);
 

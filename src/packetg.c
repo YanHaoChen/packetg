@@ -120,6 +120,13 @@ unsigned short cal_udp_checksum(struct presudo_header *presudo_hdr , unsigned sh
     return (unsigned short)(~sum);
 }
 
+void mac_addr_a_to_b_net(unsigned char *a_addr, unsigned char *b_net_addr){
+    int i;
+    for(i=0;i <= 5; i++){
+        b_net_addr[i] = a_addr[5-i]; 
+    }
+}
+
 int init_packet_generator(void){
     int sockfd;
     if((sockfd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW)) == -1){
@@ -139,14 +146,7 @@ struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interfac
 	if (ioctl(sockfd, SIOCGIFINDEX, &if_id) < 0){
         perror("Setting interface: error\n");
     }
-
-    bind_addr.sll_addr[0] = field->dst_addr[5];
-    bind_addr.sll_addr[1] = field->dst_addr[4];
-    bind_addr.sll_addr[2] = field->dst_addr[3];
-    bind_addr.sll_addr[3] = field->dst_addr[2];
-    bind_addr.sll_addr[4] = field->dst_addr[1];
-    bind_addr.sll_addr[5] = field->dst_addr[0]; 
-    
+    mac_addr_a_to_b_net(field->dst_addr, bind_addr.sll_addr);
     bind_addr.sll_ifindex = if_id.ifr_ifindex;
     bind_addr.sll_halen = ETH_ALEN;
     return bind_addr;
@@ -158,24 +158,13 @@ int push_l2_field(char *packet, struct mac_field *field){
     struct ether_header *l2_header = (struct ether_header *)packet;
     l2_header->ether_type = htons(field->ether_type);
 
-    l2_header->ether_shost[0] = field->src_addr[5];
-    l2_header->ether_shost[1] = field->src_addr[4];
-    l2_header->ether_shost[2] = field->src_addr[3];
-    l2_header->ether_shost[3] = field->src_addr[2];
-    l2_header->ether_shost[4] = field->src_addr[1];
-    l2_header->ether_shost[5] = field->src_addr[0];
+    mac_addr_a_to_b_net(field->src_addr, l2_header->ether_shost);
+    mac_addr_a_to_b_net(field->dst_addr, l2_header->ether_dhost);
 
-    l2_header->ether_dhost[0] = field->dst_addr[5];
-    l2_header->ether_dhost[1] = field->dst_addr[4];
-    l2_header->ether_dhost[2] = field->dst_addr[3];
-    l2_header->ether_dhost[3] = field->dst_addr[2];
-    l2_header->ether_dhost[4] = field->dst_addr[1];
-    l2_header->ether_dhost[5] = field->dst_addr[0]; 
-    
     return L2_HEADER;
 }
 
-int push_arp_field(char *packet){
+int push_arp_field(char *packet, struct arp_field *field){
     struct arp_header *arp_header = (struct arp_header *)(packet + L2_HEADER);
     return 0;
 }
