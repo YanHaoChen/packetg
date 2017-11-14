@@ -4,11 +4,11 @@ This library for making generating packet easy.
 
 > For Linux
 
-## Example
+## UDP
 
-Follow those steps, and you will know how to use this library to send a packet!
+Follow those steps, and you will know how to use this library to send a UDP packet.
 
-[Example code](https://github.com/YanHaoChen/packetg/blob/master/src/packetg.c)
+[Example code](https://github.com/YanHaoChen/packetg/blob/master/src/packetg_testing.c)
 
 ##### step 1
 
@@ -111,3 +111,8 @@ Send this packet!
 ```c
 send_packet(&seed);
 ```
+
+## ARP(Request)
+
+[Example code](https://github.com/YanHaoChen/packetg/blob/master/src/arp_testing.c)
+
