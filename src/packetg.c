@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 // definitions for internet operations(ex htons...)
 #include <arpa/inet.h>
 // sockaddr_ll
@@ -22,8 +23,8 @@
 #define UDP_HEADER 8
 
 struct mac_field{
-    unsigned char src_addr[6];
-    unsigned char dst_addr[6];
+    unsigned char *src_addr;
+    unsigned char *dst_addr;
     unsigned short ether_type;
 };
 
@@ -47,8 +48,8 @@ enum{
 };
 
 struct arp_field{
-    unsigned char src_addr[6];
-    unsigned char dst_addr[6];
+    unsigned char *src_addr;
+    unsigned char *dst_addr;
     char *src_ip_addr;
     char *dst_ip_addr;
     unsigned short opcode;
@@ -138,6 +139,36 @@ void mac_addr_a_to_b_net(unsigned char *a_addr, unsigned char *b_net_addr){
     }
 }
 
+int str_mac_addr_a_to_b_net(unsigned char *a_addr, unsigned char *b_net_addr){
+    unsigned short second_c = 0;
+    unsigned short first_c = 0;
+    int i;
+    int addr_count = 0;
+    for(i=-1;i<17;i+=3){
+        
+         if(tolower(a_addr[i+1]) >= 97 && tolower(a_addr[i+1]) <= 102){
+             second_c = (unsigned short)tolower(a_addr[i+1]) - 97;
+         }else if(a_addr[i+1] >= 48 && a_addr[i+1] <= 57){
+            second_c = (unsigned short)tolower(a_addr[i+1]) - 48;
+         }else{
+             printf("sec:%c\n",a_addr[i+1]);
+             return i+1;
+         }
+
+         if(tolower(a_addr[i+2]) >= 97 && tolower(a_addr[i+2]) <= 102){
+             first_c = (unsigned short)tolower(a_addr[i+2]) - 97;
+         }else if(a_addr[i+2] >= 48 && a_addr[i+2] <= 57){
+            first_c = (unsigned short)tolower(a_addr[i+2]) - 48;
+         }else{
+             printf("fir:%c\n",a_addr[i+2]);
+             return i+2;
+         }
+         b_net_addr[addr_count] = (second_c << 4) + first_c;
+         addr_count++;
+    }
+    return 0;
+}
+
 int init_packet_generator(void){
     int sockfd;
     if((sockfd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW)) == -1){
@@ -157,7 +188,8 @@ struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interfac
 	if (ioctl(sockfd, SIOCGIFINDEX, &if_id) < 0){
         perror("Setting interface: error\n");
     }
-    mac_addr_a_to_b_net(field->dst_addr, bind_addr.sll_addr);
+    //mac_addr_a_to_b_net(field->dst_addr, bind_addr.sll_addr);
+    str_mac_addr_a_to_b_net(field->dst_addr, bind_addr.sll_addr);
     bind_addr.sll_ifindex = if_id.ifr_ifindex;
     bind_addr.sll_halen = ETH_ALEN;
     return bind_addr;
@@ -169,8 +201,8 @@ unsigned short push_l2_field(char *packet, struct mac_field *field){
     struct ether_header *l2_header = (struct ether_header *)packet;
     l2_header->ether_type = htons(field->ether_type);
 
-    mac_addr_a_to_b_net(field->src_addr, l2_header->ether_shost);
-    mac_addr_a_to_b_net(field->dst_addr, l2_header->ether_dhost);
+    str_mac_addr_a_to_b_net(field->src_addr, l2_header->ether_shost);
+    str_mac_addr_a_to_b_net(field->dst_addr, l2_header->ether_dhost);
 
     return L2_HEADER;
 }
@@ -184,9 +216,10 @@ unsigned short push_arp_field(char *packet, struct arp_field *field){
     arp_header->addr_len = 6;
     arp_header->protocol_addr_len = 4;
     arp_header->opcode = htons(field->opcode);
-    mac_addr_a_to_b_net(field->src_addr ,arp_header->sender_hw_addr); 
+    
+    str_mac_addr_a_to_b_net(field->src_addr ,arp_header->sender_hw_addr);
     inet_aton(field->src_ip_addr, &arp_header->sender_ip);
-    mac_addr_a_to_b_net(field->dst_addr ,arp_header->target_hw_addr); 
+    str_mac_addr_a_to_b_net(field->dst_addr ,arp_header->target_hw_addr); 
     inet_aton(field->dst_ip_addr, &arp_header->target_ip);
     return ARP_HEADER;
 }

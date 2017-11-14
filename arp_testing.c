@@ -14,37 +14,15 @@ int main(){
 
     /* L2 */
     l2_field = (struct mac_field*)malloc(sizeof(struct mac_field));
-    (l2_field->src_addr)[0] = 0x01;
-    (l2_field->src_addr)[1] = 0x00;
-    (l2_field->src_addr)[2] = 0x00;
-    (l2_field->src_addr)[3] = 0x00;
-    (l2_field->src_addr)[4] = 0x00;
-    (l2_field->src_addr)[5] = 0x00;
-
-    (l2_field->dst_addr)[0] = 0xff;
-    (l2_field->dst_addr)[1] = 0xff;
-    (l2_field->dst_addr)[2] = 0xff;
-    (l2_field->dst_addr)[3] = 0xff;
-    (l2_field->dst_addr)[4] = 0xff;
-    (l2_field->dst_addr)[5] = 0xff;
+    l2_field->src_addr = "00:00:00:00:00:01";
+    l2_field->dst_addr = "00:00:00:00:00:02";
 
     l2_field->ether_type = ETH_P_ARP;
 
     /* ARP */
     l25_field = (struct arp_field*)malloc(sizeof(struct arp_field));
-    (l25_field->src_addr)[0] = 0x01;
-    (l25_field->src_addr)[1] = 0x00;
-    (l25_field->src_addr)[2] = 0x00;
-    (l25_field->src_addr)[3] = 0x00;
-    (l25_field->src_addr)[4] = 0x00;
-    (l25_field->src_addr)[5] = 0x00;
-
-    (l25_field->dst_addr)[0] = 0x00;
-    (l25_field->dst_addr)[1] = 0x00;
-    (l25_field->dst_addr)[2] = 0x00;
-    (l25_field->dst_addr)[3] = 0x00;
-    (l25_field->dst_addr)[4] = 0x00;
-    (l25_field->dst_addr)[5] = 0x00;
+    l25_field->src_addr = "00:00:00:00:00:01";
+    l25_field->dst_addr = "00:00:00:00:00:00";
     
     l25_field->src_ip_addr = "10.0.0.1";
     l25_field->dst_ip_addr = "10.0.0.2";

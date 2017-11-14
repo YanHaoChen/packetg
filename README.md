@@ -38,20 +38,8 @@ memset(packet, 0, 1024);
 
 /* Full in fields of L2 */
 l2_field = (struct mac_field*)malloc(sizeof(struct mac_field));
-
-(l2_field->src_addr)[0] = 0x01;
-(l2_field->src_addr)[1] = 0x00;
-(l2_field->src_addr)[2] = 0x00;
-(l2_field->src_addr)[3] = 0x00;
-(l2_field->src_addr)[4] = 0x00;
-(l2_field->src_addr)[5] = 0x00;
-
-(l2_field->dst_addr)[0] = 0x02;
-(l2_field->dst_addr)[1] = 0x00;
-(l2_field->dst_addr)[2] = 0x00;
-(l2_field->dst_addr)[3] = 0x00;
-(l2_field->dst_addr)[4] = 0x00;
-(l2_field->dst_addr)[5] = 0x00;
+l2_field->src_addr = "00:00:00:00:00:01";
+l2_field->dst_addr = "00:00:00:00:00:02";
 
 l2_field->ether_type = ETH_P_IP;
 

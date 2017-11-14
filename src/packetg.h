@@ -16,8 +16,8 @@ ETH_P_ARP
 Others can be found in if_ether.h.  
 */
 struct mac_field{
-    unsigned char src_addr[6];
-    unsigned char dst_addr[6];
+    unsigned char *src_addr;
+    unsigned char *dst_addr;
     unsigned short ether_type;
 };
 
@@ -29,8 +29,8 @@ enum{
 };
 
 struct arp_field{
-    unsigned char src_addr[6];
-    unsigned char dst_addr[6];
+    unsigned char *src_addr;
+    unsigned char *dst_addr;
     char *src_ip_addr;
     char *dst_ip_addr;
     unsigned short opcode;
@@ -78,6 +78,7 @@ struct presudo_header {
 
 unsigned short cal_checksum(unsigned short *buf, int header_size);
 void mac_addr_a_to_b_net(unsigned char *a_addr, unsigned char *b_net_addr);
+int str_mac_addr_a_to_b_net(unsigned char *a_addr, unsigned char *b_net_addr);
 int init_packet_generator(void);    
 struct sockaddr_ll set_interface_and_get_binding_addr(int sockfd, char *interface_name , struct mac_field *field);
 
