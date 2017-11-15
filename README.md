@@ -112,7 +112,7 @@ Send this packet!
 send_packet(&seed);
 ```
 
-## ARP(Request)
+## ARP
 
 [Example code](https://github.com/YanHaoChen/packetg/blob/master/src/arp_testing.c)
 
