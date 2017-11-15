@@ -8,7 +8,7 @@ This library for making generating packet easy.
 
 Follow those steps, and you will know how to use this library to send a UDP packet.
 
-[Example code](https://github.com/YanHaoChen/packetg/blob/master/src/packetg_testing.c)
+[Example code](https://github.com/YanHaoChen/packetg/blob/master/src/udp_testing.c)
 
 ##### step 1
 
@@ -112,7 +112,23 @@ Send this packet!
 send_packet(&seed);
 ```
 
+##### step 8
+Compile your code with packetg.
+
+```shell
+$ cc udp_testing src/packetg.c
+```
+
+##### step 9
+Execute!
+
+```shell
+$ sudo ./a.out
+```
+
 ## ARP
+
+Most steps in generating ARP packet are same with generating UDP packet. At this section, I wrote down the steps which are different with generating UDP packet.
 
 [Example code](https://github.com/YanHaoChen/packetg/blob/master/src/arp_testing.c)
 
