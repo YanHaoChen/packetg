@@ -36,21 +36,21 @@ struct packet_seed seed;
 char packet[1024];
 memset(packet, 0, 1024);
 
-/* Full in fields of L2 */
+/* Fill in fields of L2 */
 l2_field = (struct mac_field*)malloc(sizeof(struct mac_field));
 l2_field->src_addr = "00:00:00:00:00:01";
 l2_field->dst_addr = "00:00:00:00:00:02";
 
 l2_field->ether_type = ETH_P_IP;
 
-/* Full in fields of L3 */
+/* Fill in fields of L3 */
 l3_field = (struct ip_field*)malloc(sizeof(struct ip_field));
 l3_field->src_addr = "10.0.0.1";
 l3_field->dst_addr = "10.0.0.2";
 
 l3_field->protocol = IPPROTO_UDP;
 
-/* Full in fields of L4 */
+/* Fill in fields of L4 */
 l4_field = (struct udp_field*)malloc(sizeof(struct udp_field));
 l4_field->src_port = 1234;
 l4_field->dst_port = 4321;
@@ -128,7 +128,53 @@ $ sudo ./a.out
 
 ## ARP
 
-Most steps in generating ARP packet are same with generating UDP packet. At this section, I wrote down the steps which are different with generating UDP packet.
+Most steps in generating ARP packet are the same as steps in generating UDP packet. At this section, I wrote down the steps which are different from generating UDP packet.
 
 [Example code](https://github.com/YanHaoChen/packetg/blob/master/src/arp_testing.c)
 
+##### Change L2 field
+
+First of all, change the `ethernet_type` into `ETH_P_ARP`. 
+
+```c
+l2_field->ether_type = ETH_P_ARP;
+```
+If you want to generate ARP request, you need to fill in `dst_addr` with `ff:ff:ff:ff:ff:ff`.
+
+```c
+
+l2_field->src_addr = "00:00:00:00:00:01";
+l2_field->dst_addr = "ff:ff:ff:ff:ff:ff";
+
+l2_field->ether_type = ETH_P_ARP;
+```
+> `ff:ff:ff:ff:ff:ff` represents broadcast.
+
+##### Prepare ARP field
+
+When we generate a ARP request, we have to fill in `dst_addr` with `00:00:00:00:00:00`, and `opcode` with `ARP_REQUEST`.
+
+```c
+struct arp_field *l25_field;
+
+l25_field = (struct arp_field*)malloc(sizeof(struct arp_field));
+l25_field->src_addr = "00:00:00:00:00:01";
+l25_field->dst_addr = "00:00:00:00:00:00";
+    
+l25_field->src_ip_addr = "10.0.0.1";
+l25_field->dst_ip_addr = "10.0.0.2";
+    
+l25_field->opcode = ARP_REQUEST;
+```
+
+##### Set total length of seed
+
+Because ARP packet doesn't have payload, the total length of seed is the same as length of header.
+
+```c
+/* header */
+packet_size = 0;
+packet_size += push_l2_field(request_packet, l2_field);
+packet_size += push_arp_field(request_packet, l25_field);
+request_seed.total_len = packet_size;
+```
