@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 // definitions for internet operations(ex htons...)
 #include <arpa/inet.h>
 // sockaddr_ll
@@ -21,6 +22,9 @@
 #define ARP_HEADER 48
 #define L3_HEADER 20
 #define UDP_HEADER 8
+
+//minimum maximum reassembly buffer size
+#define MIN_MRBS 576
 
 struct mac_field{
     unsigned char *src_addr;
@@ -77,7 +81,10 @@ struct packet_seed{
     unsigned short total_len;
     int generator;
     struct sockaddr_ll binding;
+	int repeat;
+	struct packet_seed *at_last;
 };
+
 
 struct presudo_header {
     unsigned short protocol;
@@ -296,4 +303,62 @@ int send_packet(struct packet_seed *seed){
     } else {
         return 1;
     }
+}
+
+void prepare_k_packet(struct packet_seed *seed,char *packet , unsigned short amount){
+
+	unsigned short packet_needed = 0;
+	packet_needed = (amount * 1024) / MIN_MRBS;
+	unsigned short last_packet_size = 0;
+	last_packet_size= (amount * 1024) % MIN_MRBS;
+	unsigned short max_payload_size = MIN_MRBS - seed->header_len;
+
+	if(last_packet_size > 0 && last_packet_size < 62){
+		unsigned short need_reduce = 0;
+		need_reduce = ((62-last_packet_size) / packet_needed) + 1;
+		max_payload_size -=need_reduce;
+		last_packet_size += need_reduce * packet_needed;
+        
+	}
+
+	char payload_packet[max_payload_size];
+	memset(payload_packet,'0', max_payload_size);
+	struct packet_payload payload;
+	payload.content = payload_packet;
+	payload.len = max_payload_size;
+	seed->total_len = push_payload(packet, seed->header_len, &payload);
+	seed->packet = packet;
+    seed->repeat = packet_needed;
+
+    seed->at_last = (struct packet_seed *)malloc(sizeof(struct packet_seed));
+	(seed->at_last)->packet = packet;
+    (seed->at_last)->header_len = seed->header_len;
+    (seed->at_last)->total_len = last_packet_size;
+    (seed->at_last)->generator = seed->generator;
+    (seed->at_last)->binding = seed->binding;
+    (seed->at_last)->repeat = 0;
+    (seed->at_last)->at_last = NULL;
+}	
+
+
+int send_packet_in_1sec(struct packet_seed *seed){
+	int i, repeat;
+	repeat = seed->repeat;
+	clock_t end_t, start_t;
+	start_t = clock();
+	for(i =0;i<repeat;i++){
+        send_packet(seed);	
+	}
+	if(seed->at_last != NULL){
+		send_packet(seed->at_last);
+	}
+	end_t = clock();
+	int result = 0;	
+	if((end_t - start_t) < CLOCKS_PER_SEC){
+		result =1;
+	}else{
+		result =0;
+	}
+	while((end_t - start_t) < CLOCKS_PER_SEC)
+	return result;
 }

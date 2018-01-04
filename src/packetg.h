@@ -67,6 +67,8 @@ struct packet_seed{
     unsigned short total_len;
     int generator;
     struct sockaddr_ll binding;
+	int repeat;
+	struct packet_seed *at_last;
 };
 
 struct presudo_header {
@@ -92,4 +94,7 @@ int package_l3_packet(struct packet_seed *seed);
 int package_udp_packet_without_checksum(struct packet_seed *seed);
 int package_udp_packet_with_checksum(struct packet_seed *seed);
 
+/* send */
 int send_packet(struct packet_seed *seed);
+void prepare_k_packet(struct packet_seed *seed,char *packet , unsigned short amount);
+int send_packet_in_1sec(struct packet_seed *seed);
