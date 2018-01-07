@@ -87,7 +87,7 @@ struct packet_seed{
     int generator;
     struct sockaddr_ll binding;
 	int repeat;
-	struct packet_seed *at_last;
+	struct packet_seed *last_packet;
 };
 
 
@@ -313,7 +313,7 @@ int send_packet(struct packet_seed *seed){
     }
 }
 
-void prepare_K_packet(struct packet_seed *seed,char *packet , unsigned short amount){
+void prepare_K_packets(struct packet_seed *seed,char *packet , unsigned short amount){
 
 	unsigned short packet_needed = 0;
 	packet_needed = (amount << 10) / K_MIN_MRBS;
@@ -339,17 +339,17 @@ void prepare_K_packet(struct packet_seed *seed,char *packet , unsigned short amo
     seed->repeat = packet_needed;
 
 
-    seed->at_last = (struct packet_seed *)malloc(sizeof(struct packet_seed));
-	(seed->at_last)->packet = packet;
-    (seed->at_last)->header_len = seed->header_len;
-    (seed->at_last)->total_len = last_packet_size;
-    (seed->at_last)->generator = seed->generator;
-    (seed->at_last)->binding = seed->binding;
-    (seed->at_last)->repeat = 0;
-    (seed->at_last)->at_last = NULL;
+    seed->last_packet = (struct packet_seed *)malloc(sizeof(struct packet_seed));
+	(seed->last_packet)->packet = packet;
+    (seed->last_packet)->header_len = seed->header_len;
+    (seed->last_packet)->total_len = last_packet_size;
+    (seed->last_packet)->generator = seed->generator;
+    (seed->last_packet)->binding = seed->binding;
+    (seed->last_packet)->repeat = 0;
+    (seed->last_packet)->last_packet = NULL;
 }
 
-void prepare_M_packet(struct packet_seed *seed,char *packet , unsigned short amount){
+void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned short amount){
 
 	unsigned short packet_needed = 0;
 	packet_needed = (amount << 20) / M_MIN_MRBS;
@@ -375,17 +375,17 @@ void prepare_M_packet(struct packet_seed *seed,char *packet , unsigned short amo
     seed->repeat = packet_needed;
 
 
-    seed->at_last = (struct packet_seed *)malloc(sizeof(struct packet_seed));
-	(seed->at_last)->packet = packet;
-    (seed->at_last)->header_len = seed->header_len;
-    (seed->at_last)->total_len = last_packet_size;
-    (seed->at_last)->generator = seed->generator;
-    (seed->at_last)->binding = seed->binding;
-    (seed->at_last)->repeat = 0;
-    (seed->at_last)->at_last = NULL;
+    seed->last_packet = (struct packet_seed *)malloc(sizeof(struct packet_seed));
+	(seed->last_packet)->packet = packet;
+    (seed->last_packet)->header_len = seed->header_len;
+    (seed->last_packet)->total_len = last_packet_size;
+    (seed->last_packet)->generator = seed->generator;
+    (seed->last_packet)->binding = seed->binding;
+    (seed->last_packet)->repeat = 0;
+    (seed->last_packet)->last_packet = NULL;
 }
 
-int send_packet_in_1sec(struct packet_seed *seed){
+int send_packets_in_1sec(struct packet_seed *seed){
 	int i, repeat;
 	repeat = seed->repeat;
 	clock_t end_t, start_t;
@@ -393,8 +393,8 @@ int send_packet_in_1sec(struct packet_seed *seed){
 	for(i =0;i<repeat;i++){
         send_packet(seed);	
 	}
-	if(seed->at_last != NULL){
-		send_packet(seed->at_last);
+	if(seed->last_packet != NULL){
+		send_packet(seed->last_packet);
 	}
 	end_t = clock();
 	int result = 0;	

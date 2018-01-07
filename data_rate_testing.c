@@ -9,7 +9,7 @@ int main(){
     struct ip_field l3_field;
     struct udp_field l4_field;
     struct packet_seed seed;
-    seed.at_last = NULL;
+    seed.last_packet = NULL;
 
     char packet[MAX_PACKET_LENGTH];
     
@@ -51,19 +51,17 @@ int main(){
     seed.header_len = packet_size;
 
     /* payload */
-;
-    prepare_M_packet(&seed, packet, 30);
+    prepare_M_packets(&seed, packet, 30);
     /* Calculate checksum and length */
     package_udp_packet_with_checksum(&seed);
     
-    if(seed.at_last != NULL){
-        package_udp_packet_with_checksum(seed.at_last);
+    if(seed.last_packet != NULL){
+        package_udp_packet_with_checksum(seed.last_packet);
     }
     
-
     /* Send this packet */
     int state=0;
-    state = send_packet_in_1sec(&seed);
+    state = send_packets_in_1sec(&seed);
     printf("30M:on_time:%d\n", state);
     return 0;
 }

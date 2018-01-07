@@ -174,3 +174,32 @@ packet_size += push_l2_field(request_packet, &l2_field);
 packet_size += push_arp_field(request_packet, &l25_field);
 request_seed.total_len = packet_size;
 ```
+
+## With Constant Data Rate
+
+Sometimes, we have to send our packets constantly(for example, send 30MB of data per second to a host). At thesituation, we can use three functions(`prepare_K_packets`, `prepare_M_packets` and `send_packets_in_1sec`) in `packetg` to make it.
+
+[Example code](https://github.com/YanHaoChen/packetg/blob/master/data_rate_testing.c)
+
+The functions of generating payload and sending packets are the main difference between generating single packet and generating packets constantly.
+
+
+
+```C
+/* payload */
+/* prepare_M_packets will put the packet into the seed.packet and calculate the number packetg need to repeat. The last packet will be put into seed.last_packet. */
+prepare_M_packets(&seed, packet, 30);
+/* Calculate checksum and length */
+package_udp_packet_with_checksum(&seed);
+/* If seed.last_packet isn't equal to NULL, calculate the checksum of this packet. */
+if(seed.last_packet != NULL){
+    package_udp_packet_with_checksum(seed.at_last);
+}
+    
+/* Send this packet */
+/*  state=1 -> On time ; state=0 -> time out */
+int state=0;
+state = send_packets_in_1sec(&seed);
+```
+
+ 
