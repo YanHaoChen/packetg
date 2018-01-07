@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+
 // definitions for internet operations(ex htons...)
 #include <arpa/inet.h>
 // sockaddr_ll
@@ -19,12 +20,16 @@
 
 #define L2_HEADER 14
 // ARP HEADER + PADDING
-#define ARP_HEADER 48
+#define ARP_HEADER 46
 #define L3_HEADER 20
 #define UDP_HEADER 8
 
 //minimum maximum reassembly buffer size
-#define MIN_MRBS 576
+#define K_MIN_MRBS 572
+#define M_MIN_MRBS 1514
+
+
+
 
 struct mac_field{
     unsigned char *src_addr;
@@ -295,40 +300,44 @@ int package_udp_packet_with_checksum(struct packet_seed *seed){
     udp_header->uh_sum=cal_udp_checksum(presudo_hdr, (unsigned short *)udp_header, udp_len);
 }
 
+
+
 /* Send */
 
 int send_packet(struct packet_seed *seed){
     if (sendto(seed->generator, seed->packet, seed->total_len, 0, (struct sockaddr*)&seed->binding, sizeof(struct sockaddr_ll)) < 0){
+        perror("send_packet");
         return 0;
     } else {
         return 1;
     }
 }
 
-void prepare_k_packet(struct packet_seed *seed,char *packet , unsigned short amount){
+void prepare_K_packet(struct packet_seed *seed,char *packet , unsigned short amount){
 
 	unsigned short packet_needed = 0;
-	packet_needed = (amount * 1024) / MIN_MRBS;
+	packet_needed = (amount << 10) / K_MIN_MRBS;
 	unsigned short last_packet_size = 0;
-	last_packet_size= (amount * 1024) % MIN_MRBS;
-	unsigned short max_payload_size = MIN_MRBS - seed->header_len;
+	last_packet_size= (amount * 1024) % K_MIN_MRBS;
+	unsigned short max_payload_size = K_MIN_MRBS - seed->header_len;
 
-	if(last_packet_size > 0 && last_packet_size < 62){
+	if(last_packet_size > 0 && last_packet_size < 60){
 		unsigned short need_reduce = 0;
-		need_reduce = ((62-last_packet_size) / packet_needed) + 1;
+		need_reduce = ((60-last_packet_size) / packet_needed) + 1;
 		max_payload_size -=need_reduce;
 		last_packet_size += need_reduce * packet_needed;
         
 	}
 
 	char payload_packet[max_payload_size];
-	memset(payload_packet,'0', max_payload_size);
+	memset(payload_packet,'1', max_payload_size);
 	struct packet_payload payload;
 	payload.content = payload_packet;
 	payload.len = max_payload_size;
 	seed->total_len = push_payload(packet, seed->header_len, &payload);
 	seed->packet = packet;
     seed->repeat = packet_needed;
+
 
     seed->at_last = (struct packet_seed *)malloc(sizeof(struct packet_seed));
 	(seed->at_last)->packet = packet;
@@ -338,8 +347,43 @@ void prepare_k_packet(struct packet_seed *seed,char *packet , unsigned short amo
     (seed->at_last)->binding = seed->binding;
     (seed->at_last)->repeat = 0;
     (seed->at_last)->at_last = NULL;
-}	
+}
 
+void prepare_M_packet(struct packet_seed *seed,char *packet , unsigned short amount){
+
+	unsigned short packet_needed = 0;
+	packet_needed = (amount << 20) / M_MIN_MRBS;
+	unsigned short last_packet_size = 0;
+	last_packet_size= (amount * 1024) % M_MIN_MRBS;
+	unsigned short max_payload_size = M_MIN_MRBS - seed->header_len;
+
+	if(last_packet_size > 0 && last_packet_size < 60){
+		unsigned short need_reduce = 0;
+		need_reduce = ((60-last_packet_size) / packet_needed) + 1;
+		max_payload_size -=need_reduce;
+		last_packet_size += need_reduce * packet_needed;
+        
+	}
+
+	char payload_packet[max_payload_size];
+	memset(payload_packet,'1', max_payload_size);
+	struct packet_payload payload;
+	payload.content = payload_packet;
+	payload.len = max_payload_size;
+	seed->total_len = push_payload(packet, seed->header_len, &payload);
+	seed->packet = packet;
+    seed->repeat = packet_needed;
+
+
+    seed->at_last = (struct packet_seed *)malloc(sizeof(struct packet_seed));
+	(seed->at_last)->packet = packet;
+    (seed->at_last)->header_len = seed->header_len;
+    (seed->at_last)->total_len = last_packet_size;
+    (seed->at_last)->generator = seed->generator;
+    (seed->at_last)->binding = seed->binding;
+    (seed->at_last)->repeat = 0;
+    (seed->at_last)->at_last = NULL;
+}
 
 int send_packet_in_1sec(struct packet_seed *seed){
 	int i, repeat;
@@ -354,11 +398,18 @@ int send_packet_in_1sec(struct packet_seed *seed){
 	}
 	end_t = clock();
 	int result = 0;	
-	if((end_t - start_t) < CLOCKS_PER_SEC){
+	if((end_t - start_t) <= CLOCKS_PER_SEC){
+        //printf("%lf\n",((double)(end_t - start_t) / CLOCKS_PER_SEC));
 		result =1;
 	}else{
+        //printf("%lf\n",((double)(end_t - start_t) / CLOCKS_PER_SEC));
 		result =0;
 	}
-	while((end_t - start_t) < CLOCKS_PER_SEC)
+	while((end_t - start_t) <= CLOCKS_PER_SEC){
+        end_t = clock();
+    }
+
 	return result;
 }
+
+

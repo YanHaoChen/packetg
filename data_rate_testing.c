@@ -9,6 +9,8 @@ int main(){
     struct ip_field l3_field;
     struct udp_field l4_field;
     struct packet_seed seed;
+    seed.at_last = NULL;
+
     char packet[MAX_PACKET_LENGTH];
     
     memset(packet, 0, MAX_PACKET_LENGTH);
@@ -19,6 +21,7 @@ int main(){
     l2_field.dst_addr = "00:00:00:00:00:02";
 
     l2_field.ether_type = ETH_P_IP;
+
 
     /* L3 */
     l3_field.src_addr = "10.0.0.1";
@@ -38,7 +41,7 @@ int main(){
     struct sockaddr_ll this_sockaddr;
     this_sockaddr = set_interface_and_get_binding_addr(generator, "eth0", &l2_field);
     seed.binding = this_sockaddr;
-    
+
     /* Prepare a packet */
     /* header */
     unsigned short packet_size = 0;
@@ -48,18 +51,19 @@ int main(){
     seed.header_len = packet_size;
 
     /* payload */
-    struct packet_payload payload;
-    payload.content = "test";
-    payload.len = sizeof("test");
-    seed.total_len = push_payload(packet, seed.header_len, &payload);
-    
-    /* This packet is ready. */
-    seed.packet = packet; 
-
+;
+    prepare_M_packet(&seed, packet, 30);
     /* Calculate checksum and length */
     package_udp_packet_with_checksum(&seed);
     
+    if(seed.at_last != NULL){
+        package_udp_packet_with_checksum(seed.at_last);
+    }
+    
+
     /* Send this packet */
-    send_packet(&seed);
+    int state=0;
+    state = send_packet_in_1sec(&seed);
+    printf("30M:on_time:%d\n", state);
     return 0;
 }

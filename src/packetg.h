@@ -2,7 +2,7 @@
 #include <netinet/ether.h>
 #include <netinet/ip.h>
 
-#define MAX_PACKET_LENGTH 8192
+#define MAX_PACKET_LENGTH 1514
 
 #define L2_HEADER 14
 #define L3_HEADER 20
@@ -96,5 +96,7 @@ int package_udp_packet_with_checksum(struct packet_seed *seed);
 
 /* send */
 int send_packet(struct packet_seed *seed);
-void prepare_k_packet(struct packet_seed *seed,char *packet , unsigned short amount);
+void prepare_K_packet(struct packet_seed *seed,char *packet , unsigned short amount);
+void prepare_M_packet(struct packet_seed *seed,char *packet , unsigned short amount);
 int send_packet_in_1sec(struct packet_seed *seed);
+

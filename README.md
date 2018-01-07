@@ -25,9 +25,9 @@ Prepare some parameters(L2, L3 and L4) for sending a packet.
 int generator;
 
 /* Structs to store parameters for headers. */
-struct mac_field *l2_field;
-struct ip_field *l3_field;
-struct udp_field *l4_field;
+struct mac_field l2_field;
+struct ip_field l3_field;
+struct udp_field l4_field;
 
 /* A struct to store which sending a packet needs. */
 struct packet_seed seed;
@@ -37,23 +37,20 @@ char packet[1024];
 memset(packet, 0, 1024);
 
 /* Fill in fields of L2 */
-l2_field = (struct mac_field*)malloc(sizeof(struct mac_field));
-l2_field->src_addr = "00:00:00:00:00:01";
-l2_field->dst_addr = "00:00:00:00:00:02";
+l2_field.src_addr = "00:00:00:00:00:01";
+l2_field.dst_addr = "00:00:00:00:00:02";
 
-l2_field->ether_type = ETH_P_IP;
+l2_field.ether_type = ETH_P_IP;
 
 /* Fill in fields of L3 */
-l3_field = (struct ip_field*)malloc(sizeof(struct ip_field));
-l3_field->src_addr = "10.0.0.1";
-l3_field->dst_addr = "10.0.0.2";
+l3_field.src_addr = "10.0.0.1";
+l3_field.dst_addr = "10.0.0.2";
 
-l3_field->protocol = IPPROTO_UDP;
+l3_field.protocol = IPPROTO_UDP;
 
 /* Fill in fields of L4 */
-l4_field = (struct udp_field*)malloc(sizeof(struct udp_field));
-l4_field->src_port = 1234;
-l4_field->dst_port = 4321;
+l4_field.src_port = 1234;
+l4_field.dst_port = 4321;
 ```
 
 
@@ -68,11 +65,11 @@ seed.generator = generator;
 ##### step 4
 Select the interface you want to use, and get this struct(`sockaddr_ll`) which will be used when you send a packet to internet on this interface.
 
-> This struct will bind a destination MAC which is equal to `l2_field->dst_addr `.
+> This struct will bind a destination MAC which is equal to `l2_field.dst_addr `.
 
 ```c
 struct sockaddr_ll this_sockaddr;
-this_sockaddr = set_interface_and_get_binding_addr(generator, "eth0", l2_field);
+this_sockaddr = set_interface_and_get_binding_addr(generator, "eth0", &l2_field);
 seed.binding = this_sockaddr;
 
 ```
@@ -82,9 +79,9 @@ Push L2, L3, UDP fields and payload into this packet.
 ```c
 /* header */
 unsigned short packet_size = 0;
-packet_size += push_l2_field(packet, l2_field);
-packet_size += push_l3_field(packet, l3_field);
-packet_size += push_udp_field(packet, l4_field);
+packet_size += push_l2_field(packet, &l2_field);
+packet_size += push_l3_field(packet, &l3_field);
+packet_size += push_udp_field(packet, &l4_field);
 seed.header_len = packet_size;
 
 /* payload */
@@ -116,7 +113,7 @@ send_packet(&seed);
 Compile your code with packetg.
 
 ```shell
-$ cc udp_testing src/packetg.c
+$ cc udp_testing.c src/packetg.c
 ```
 
 ##### step 9
@@ -137,16 +134,16 @@ Most steps in generating ARP packet are the same as steps in generating UDP pack
 First of all, change the `ethernet_type` into `ETH_P_ARP`. 
 
 ```c
-l2_field->ether_type = ETH_P_ARP;
+l2_field.ether_type = ETH_P_ARP;
 ```
 If you want to generate ARP request, you need to fill in `dst_addr` with `ff:ff:ff:ff:ff:ff`.
 
 ```c
 
-l2_field->src_addr = "00:00:00:00:00:01";
-l2_field->dst_addr = "ff:ff:ff:ff:ff:ff";
+l2_field.src_addr = "00:00:00:00:00:01";
+l2_field.dst_addr = "ff:ff:ff:ff:ff:ff";
 
-l2_field->ether_type = ETH_P_ARP;
+l2_field.ether_type = ETH_P_ARP;
 ```
 > `ff:ff:ff:ff:ff:ff` represents broadcast.
 
@@ -155,16 +152,15 @@ l2_field->ether_type = ETH_P_ARP;
 When we generate a ARP request, we have to fill in `dst_addr` with `00:00:00:00:00:00`, and `opcode` with `ARP_REQUEST`.
 
 ```c
-struct arp_field *l25_field;
+struct arp_field l25_field;
 
-l25_field = (struct arp_field*)malloc(sizeof(struct arp_field));
-l25_field->src_addr = "00:00:00:00:00:01";
-l25_field->dst_addr = "00:00:00:00:00:00";
+l25_field.src_addr = "00:00:00:00:00:01";
+l25_field.dst_addr = "00:00:00:00:00:00";
     
-l25_field->src_ip_addr = "10.0.0.1";
-l25_field->dst_ip_addr = "10.0.0.2";
+l25_field.src_ip_addr = "10.0.0.1";
+l25_field.dst_ip_addr = "10.0.0.2";
     
-l25_field->opcode = ARP_REQUEST;
+l25_field.opcode = ARP_REQUEST;
 ```
 
 ##### Set total length of seed
@@ -174,7 +170,7 @@ Because ARP packet doesn't have payload, the total length of seed is the same as
 ```c
 /* header */
 packet_size = 0;
-packet_size += push_l2_field(request_packet, l2_field);
-packet_size += push_arp_field(request_packet, l25_field);
+packet_size += push_l2_field(request_packet, &l2_field);
+packet_size += push_arp_field(request_packet, &l25_field);
 request_seed.total_len = packet_size;
 ```
