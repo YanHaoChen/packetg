@@ -28,9 +28,6 @@
 #define K_MIN_MRBS 572
 #define M_MIN_MRBS 1514
 
-
-
-
 struct mac_field{
     unsigned char *src_addr;
     unsigned char *dst_addr;
@@ -271,6 +268,9 @@ int package_l3_packet(struct packet_seed *seed){
     struct ip *l3_header = (struct ip *)(seed->packet + L2_HEADER);
     l3_header->ip_len = htons(seed->total_len - L2_HEADER);
     l3_header->ip_sum = cal_checksum((unsigned short *)l3_header, L3_HEADER);
+    if(seed->last_packet != NULL){
+        package_l3_packet(seed->last_packet);
+    }
 }
 
 int package_udp_packet_without_checksum(struct packet_seed *seed){
@@ -281,6 +281,9 @@ int package_udp_packet_without_checksum(struct packet_seed *seed){
     struct udphdr *udp_header = (struct udphdr *)(seed->packet + L2_HEADER + L3_HEADER);
     int udp_len = seed->total_len - L2_HEADER - L3_HEADER;
     udp_header->uh_ulen = htons(udp_len);
+    if(seed->last_packet != NULL){
+        package_udp_packet_without_checksum(seed->last_packet);
+    }
 }
 
 int package_udp_packet_with_checksum(struct packet_seed *seed){
@@ -298,17 +301,25 @@ int package_udp_packet_with_checksum(struct packet_seed *seed){
     presudo_hdr->protocol = htons(IPPROTO_UDP);
     presudo_hdr->len = htons(udp_len);
     udp_header->uh_sum=cal_udp_checksum(presudo_hdr, (unsigned short *)udp_header, udp_len);
+    if(seed->last_packet != NULL){
+        package_udp_packet_with_checksum(seed->last_packet);
+    }
 }
 
-
-
 /* Send */
-
 int send_packet(struct packet_seed *seed){
+    struct timespec tms;
     if (sendto(seed->generator, seed->packet, seed->total_len, 0, (struct sockaddr*)&seed->binding, sizeof(struct sockaddr_ll)) < 0){
         perror("send_packet");
         return 0;
     } else {
+        
+        if(clock_gettime(CLOCK_REALTIME, &tms)){
+            return 0;
+        }
+        long long int timestp = tms.tv_sec * 1000000;
+        timestp += tms.tv_nsec/1000;
+        printf("%lld,%d\n",timestp, seed->total_len);
         return 1;
     }
 }
@@ -318,15 +329,22 @@ void prepare_K_packets(struct packet_seed *seed,char *packet , unsigned short am
 	unsigned short packet_needed = 0;
 	packet_needed = (amount << 10) / K_MIN_MRBS;
 	unsigned short last_packet_size = 0;
-	last_packet_size= (amount * 1024) % K_MIN_MRBS;
+	last_packet_size= (amount << 10) % K_MIN_MRBS;
 	unsigned short max_payload_size = K_MIN_MRBS - seed->header_len;
-
+    int last_repeat = 0;
+    int need_third_seed = 0;
+    int third_seed_len = 0;
 	if(last_packet_size > 0 && last_packet_size < 60){
-		unsigned short need_reduce = 0;
-		need_reduce = ((60-last_packet_size) / packet_needed) + 1;
-		max_payload_size -=need_reduce;
-		last_packet_size += need_reduce * packet_needed;
-        
+        packet_needed -= 1;
+        if((last_packet_size + K_MIN_MRBS) % 2 == 0 ){
+        	last_repeat = 2;
+            last_packet_size = (last_packet_size + K_MIN_MRBS) / 2;
+        }else{
+            need_third_seed = 1;
+            last_repeat = 1;
+            last_packet_size = (last_packet_size + K_MIN_MRBS) / 2;
+            third_seed_len = last_packet_size + 1;
+        }
 	}
 
 	char payload_packet[max_payload_size];
@@ -338,15 +356,33 @@ void prepare_K_packets(struct packet_seed *seed,char *packet , unsigned short am
 	seed->packet = packet;
     seed->repeat = packet_needed;
 
-
-    seed->last_packet = (struct packet_seed *)malloc(sizeof(struct packet_seed));
-	(seed->last_packet)->packet = packet;
-    (seed->last_packet)->header_len = seed->header_len;
-    (seed->last_packet)->total_len = last_packet_size;
-    (seed->last_packet)->generator = seed->generator;
-    (seed->last_packet)->binding = seed->binding;
-    (seed->last_packet)->repeat = 0;
-    (seed->last_packet)->last_packet = NULL;
+    if(last_packet_size != 0){
+        struct packet_seed *second_seed;
+        second_seed = (struct packet_seed *)malloc(sizeof(struct packet_seed));
+	    second_seed->packet = packet;
+        second_seed->header_len = seed->header_len;
+        second_seed->total_len = last_packet_size;
+        second_seed->generator = seed->generator;
+        second_seed->binding = seed->binding;
+        second_seed->repeat = last_repeat;
+        second_seed->last_packet = NULL;
+        if(need_third_seed == 1){
+            struct packet_seed *third_seed;
+            third_seed = (struct packet_seed *)malloc(sizeof(struct packet_seed));
+    
+	        third_seed->packet = packet;
+            third_seed->header_len = seed->header_len;
+            third_seed->total_len = third_seed_len;
+            third_seed->generator = seed->generator;
+            third_seed->binding = seed->binding;
+            third_seed->repeat = 0;
+            third_seed->last_packet = NULL;
+            second_seed->last_packet = third_seed;
+        }
+        seed->last_packet = second_seed;
+    }else{
+        seed->last_packet = NULL;
+    }
 }
 
 void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned short amount){
@@ -354,15 +390,22 @@ void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned short am
 	unsigned short packet_needed = 0;
 	packet_needed = (amount << 20) / M_MIN_MRBS;
 	unsigned short last_packet_size = 0;
-	last_packet_size= (amount * 1024) % M_MIN_MRBS;
+	last_packet_size= (amount << 20) % M_MIN_MRBS;
 	unsigned short max_payload_size = M_MIN_MRBS - seed->header_len;
-
+    int last_repeat = 0;
+    int need_third_seed = 0;
+    int third_seed_len = 0;
 	if(last_packet_size > 0 && last_packet_size < 60){
-		unsigned short need_reduce = 0;
-		need_reduce = ((60-last_packet_size) / packet_needed) + 1;
-		max_payload_size -=need_reduce;
-		last_packet_size += need_reduce * packet_needed;
-        
+        packet_needed -= 1;
+        if((last_packet_size + M_MIN_MRBS) % 2 == 0 ){
+        	last_repeat = 2;
+            last_packet_size = (last_packet_size + M_MIN_MRBS) / 2;
+        }else{
+            need_third_seed = 1;
+            last_repeat = 1;
+            last_packet_size = (last_packet_size + M_MIN_MRBS) / 2;
+            third_seed_len = last_packet_size + 1;
+        }
 	}
 
 	char payload_packet[max_payload_size];
@@ -374,15 +417,33 @@ void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned short am
 	seed->packet = packet;
     seed->repeat = packet_needed;
 
-
-    seed->last_packet = (struct packet_seed *)malloc(sizeof(struct packet_seed));
-	(seed->last_packet)->packet = packet;
-    (seed->last_packet)->header_len = seed->header_len;
-    (seed->last_packet)->total_len = last_packet_size;
-    (seed->last_packet)->generator = seed->generator;
-    (seed->last_packet)->binding = seed->binding;
-    (seed->last_packet)->repeat = 0;
-    (seed->last_packet)->last_packet = NULL;
+    if(last_packet_size != 0){
+        struct packet_seed *second_seed;
+        second_seed = (struct packet_seed *)malloc(sizeof(struct packet_seed));
+	    second_seed->packet = packet;
+        second_seed->header_len = seed->header_len;
+        second_seed->total_len = last_packet_size;
+        second_seed->generator = seed->generator;
+        second_seed->binding = seed->binding;
+        second_seed->repeat = last_repeat;
+        second_seed->last_packet = NULL;
+        if(need_third_seed == 1){
+            struct packet_seed *third_seed;
+            third_seed = (struct packet_seed *)malloc(sizeof(struct packet_seed));
+    
+	        third_seed->packet = packet;
+            third_seed->header_len = seed->header_len;
+            third_seed->total_len = third_seed_len;
+            third_seed->generator = seed->generator;
+            third_seed->binding = seed->binding;
+            third_seed->repeat = 0;
+            third_seed->last_packet = NULL;
+            second_seed->last_packet = third_seed;
+        }
+        seed->last_packet = second_seed;
+    }else{
+        seed->last_packet = NULL;
+    }
 }
 
 int send_packets_in_1sec(struct packet_seed *seed){
@@ -394,7 +455,13 @@ int send_packets_in_1sec(struct packet_seed *seed){
         send_packet(seed);	
 	}
 	if(seed->last_packet != NULL){
-		send_packet(seed->last_packet);
+        if(seed->last_packet->repeat == 2){
+            send_packet(seed->last_packet);
+            send_packet(seed->last_packet);
+        }else{
+            send_packet(seed->last_packet);
+            send_packet(seed->last_packet->last_packet);
+        }
 	}
 	end_t = clock();
 	int result = 0;	
