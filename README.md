@@ -193,13 +193,10 @@ The functions of generating payload and sending packets are the main difference 
 /* payload */
 /* prepare_M_packets will put the packet into the seed.packet and calculate the number packetg needs to repeat. The last packet will be put into seed.last_packet. */
 prepare_M_packets(&seed, packet, 30);
+
 /* Calculate checksum and length */
 package_udp_packet_with_checksum(&seed);
-/* If seed.last_packet isn't equal to NULL, calculate the checksum of this packet. */
-if(seed.last_packet != NULL){
-    package_udp_packet_with_checksum(seed.at_last);
-}
-    
+
 /* Send this packet */
 /*  state=0 -> In time ; state=1 -> Time out */
 int state=0;
