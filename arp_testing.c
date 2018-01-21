@@ -45,7 +45,7 @@ int main(){
 
     /* This packet is ready. */
     request_seed.packet = request_packet; 
-    send_packet(&request_seed);
+    send_packet(&request_seed, 0);
 
     /* Reply */
     char reply_packet[MAX_PACKET_LENGTH];
@@ -84,6 +84,6 @@ int main(){
 
     /* This packet is ready. */
     reply_seed.packet = reply_packet; 
-    send_packet(&reply_seed);
+    send_packet(&reply_seed, 0);
     return 0;
 }

@@ -51,13 +51,13 @@ int main(){
     seed.header_len = packet_size;
 
     /* payload */
-    prepare_K_packets(&seed, packet, 10);
+    prepare_M_packets(&seed, packet, 10);
     /* Calculate checksum and length */
-    package_udp_packet_with_checksum(&seed);
+    package_udp_packet_without_checksum(&seed);
     
     /* Send this packet */
     int state=0;
-    state = send_packets_in_1sec(&seed);
+    state = send_packets_in_1sec(&seed, 0);
     //printf("30M:on_time:%d\n", state);
     return 0;
 }
