@@ -2,7 +2,7 @@
 #include <netinet/ether.h>
 #include <netinet/ip.h>
 
-#define MAX_PACKET_LENGTH 1514
+#define MAX_PACKET_LENGTH 1450
 
 #define L2_HEADER 14
 #define L3_HEADER 20
