@@ -26,7 +26,7 @@
 
 //minimum maximum reassembly buffer size
 #define K_MIN_MRBS 572
-#define M_MIN_MRBS 1514
+#define M_MIN_MRBS 1450
 
 struct mac_field{
     unsigned char *src_addr;
@@ -313,13 +313,12 @@ int send_packet(struct packet_seed *seed){
         perror("send_packet");
         return 0;
     } else {
-        
         if(clock_gettime(CLOCK_REALTIME, &tms)){
             return 0;
         }
         long long int timestp = tms.tv_sec * 1000000;
         timestp += tms.tv_nsec/1000;
-        printf("%lld,%d\n",timestp, seed->total_len);
+        //printf("%lld,%d\n",timestp, seed->total_len);
         return 1;
     }
 }
@@ -369,7 +368,6 @@ void prepare_K_packets(struct packet_seed *seed,char *packet , unsigned short am
         if(need_third_seed == 1){
             struct packet_seed *third_seed;
             third_seed = (struct packet_seed *)malloc(sizeof(struct packet_seed));
-    
 	        third_seed->packet = packet;
             third_seed->header_len = seed->header_len;
             third_seed->total_len = third_seed_len;
@@ -452,7 +450,7 @@ int send_packets_in_1sec(struct packet_seed *seed){
 	clock_t end_t, start_t;
 	start_t = clock();
 	for(i =0;i<repeat;i++){
-        send_packet(seed);	
+        send_packet(seed);
 	}
 	if(seed->last_packet != NULL){
         if(seed->last_packet->repeat == 2){
@@ -460,21 +458,23 @@ int send_packets_in_1sec(struct packet_seed *seed){
             send_packet(seed->last_packet);
         }else{
             send_packet(seed->last_packet);
-            send_packet(seed->last_packet->last_packet);
+            if((seed->last_packet)->last_packet != NULL){
+                send_packet((seed->last_packet)->last_packet);
+            }
         }
 	}
 	end_t = clock();
+    
 	int result = 0;	
 	if((end_t - start_t) <= CLOCKS_PER_SEC){
-        //printf("%lf\n",((double)(end_t - start_t) / CLOCKS_PER_SEC));
 		result =1;
 	}else{
-        //printf("%lf\n",((double)(end_t - start_t) / CLOCKS_PER_SEC));
 		result =0;
 	}
 	while((end_t - start_t) <= CLOCKS_PER_SEC){
         end_t = clock();
     }
+    //printf("%lf\n",((double)(end_t - start_t) / CLOCKS_PER_SEC));
 
 	return result;
 }
