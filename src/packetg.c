@@ -468,9 +468,9 @@ int send_packets_in_1sec(struct packet_seed *seed, int show){
     
 	int result = 0;	
 	if((end_t - start_t) <= CLOCKS_PER_SEC){
-		result =1;
-	}else{
 		result =0;
+	}else{
+		result =1;
 	}
 	while((end_t - start_t) < CLOCKS_PER_SEC){
         end_t = clock();

@@ -31,7 +31,7 @@ struct udp_field l4_field;
 
 /* A struct to store which sending a packet needs. */
 struct packet_seed seed;
-
+seed.last_packet=NULL;
 /* Initialize the packet which will be sent. */
 char packet[1024];
 memset(packet, 0, 1024);
@@ -103,13 +103,17 @@ package_udp_packet_with_checksum(&seed);
 ```
 
 ##### step 7
+
 Send this packet!
 
 ```c
-send_packet(&seed);
+send_packet(&seed, 0);
 ```
 
+> If the second argument is 1, packetg will display the end of  time and amount of bytes at this time.
+
 ##### step 8
+
 Compile your code with packetg.
 
 ```shell
@@ -197,9 +201,9 @@ if(seed.last_packet != NULL){
 }
     
 /* Send this packet */
-/*  state=1 -> On time ; state=0 -> time out */
+/*  state=0 -> In time ; state=1 -> Time out */
 int state=0;
-state = send_packets_in_1sec(&seed);
+state = send_packets_in_1sec(&seed, 1);
 ```
 
  
