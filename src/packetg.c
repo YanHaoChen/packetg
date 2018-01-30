@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <time.h>
 
-// definitions for internet operations(ex htons...)
+// definitions for internet operations(e.g. htons...)
 #include <arpa/inet.h>
 // sockaddr_ll
 #include <linux/if_packet.h>
@@ -17,6 +17,11 @@
 #include <netinet/ether.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+
+// multi-process
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #define L2_HEADER 14
 // ARP HEADER + PADDING
@@ -83,7 +88,7 @@ struct packet_seed{
     unsigned short total_len;
     int generator;
     struct sockaddr_ll binding;
-	int repeat;
+	unsigned int repeat;
 	struct packet_seed *last_packet;
 };
 
@@ -326,8 +331,8 @@ int send_packet(struct packet_seed *seed, int show){
     }
 }
 
-void prepare_K_packets(struct packet_seed *seed,char *packet , unsigned short amount){
-	unsigned short packet_needed = 0;
+void prepare_K_packets(struct packet_seed *seed,char *packet , unsigned int amount){
+	unsigned int packet_needed = 0;
 	packet_needed = (amount << 10) / K_MIN_MRBS;
 	unsigned short last_packet_size = 0;
 	last_packet_size= (amount << 10) % K_MIN_MRBS;
@@ -385,9 +390,9 @@ void prepare_K_packets(struct packet_seed *seed,char *packet , unsigned short am
     }
 }
 
-void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned short amount){
+void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned int amount){
 
-	unsigned short packet_needed = 0;
+	unsigned int packet_needed = 0;
 	packet_needed = (amount << 20) / M_MAX_MRBS;
 	unsigned short last_packet_size = 0;
 	last_packet_size= (amount << 20) % M_MAX_MRBS;
@@ -446,13 +451,31 @@ void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned short am
 }
 
 int send_packets_in_1sec(struct packet_seed *seed, int show){
-	int i, repeat;
+	int i, repeat, parent_repeat, child_repeat;
 	repeat = seed->repeat;
+    parent_repeat = repeat / 2;
+    child_repeat = parent_repeat +(repeat % 2);
 	clock_t end_t, start_t;
-	start_t = clock();
-	for(i =0;i<repeat;i++){
-        send_packet(seed, show);
-	}
+    
+    pid_t pid;
+    start_t = clock();
+    printf("%lf\n",(double)start_t);
+    if((pid = fork()) == 0){
+        for(i =0;i<child_repeat;i++){
+            send_packet(seed, show);
+	    }
+        
+        printf("child_stop i:%d\n", i);
+        exit(0);
+    }else{
+        for(i =0;i<parent_repeat;i++){
+            send_packet(seed, show);
+	    }
+        printf("parent_stop i:%d\n", i);
+    }
+    wait(NULL);
+    printf("%lf\n",(double)start_t);
+
 	if(seed->last_packet != NULL){
         if(seed->last_packet->repeat == 2){
             send_packet(seed->last_packet, show);
@@ -465,9 +488,10 @@ int send_packets_in_1sec(struct packet_seed *seed, int show){
         }
 	}
 	end_t = clock();
-    
+    printf("%lf\n",(double)end_t);
 	int result = 0;	
 	if((end_t - start_t) <= CLOCKS_PER_SEC){
+        printf("%lf\n",(double)((end_t - start_t)));
 		result =0;
 	}else{
 		result =1;
