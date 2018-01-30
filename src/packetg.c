@@ -451,31 +451,32 @@ void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned int amou
 }
 
 int send_packets_in_1sec(struct packet_seed *seed, int show){
-	int i, repeat, parent_repeat, child_repeat;
+	int i, repeat, parent_repeat, child_repeat, process_count=2, status;
 	repeat = seed->repeat;
-    parent_repeat = repeat / 2;
-    child_repeat = parent_repeat +(repeat % 2);
+    child_repeat = repeat / process_count;
+    parent_repeat = child_repeat +(repeat % process_count);
 	clock_t end_t, start_t;
     
-    pid_t pid;
+    pid_t pid,wpid;
     start_t = clock();
-    printf("%lf\n",(double)start_t);
-    if((pid = fork()) == 0){
-        for(i =0;i<child_repeat;i++){
-            send_packet(seed, show);
-	    }
-        
-        printf("child_stop i:%d\n", i);
-        exit(0);
-    }else{
-        for(i =0;i<parent_repeat;i++){
-            send_packet(seed, show);
-	    }
-        printf("parent_stop i:%d\n", i);
-    }
-    wait(NULL);
-    printf("%lf\n",(double)start_t);
 
+    for(i=0;i<process_count-1;i++){
+        pid = fork();
+        if(pid == 0){
+            for(i =0;i<child_repeat;i++){
+                send_packet(seed, show);
+	        }
+            //printf("child_stop i:%d\n", i);
+            exit(0);
+        }else{
+            continue;
+        }
+    }
+    for(i =0;i<parent_repeat;i++){
+        send_packet(seed, show);
+	}
+    //printf("parent_stop i:%d\n", i);
+    while ((wpid = wait(&status)) > 0);
 	if(seed->last_packet != NULL){
         if(seed->last_packet->repeat == 2){
             send_packet(seed->last_packet, show);
