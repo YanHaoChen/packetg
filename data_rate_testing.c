@@ -57,7 +57,6 @@ int main(){
     
     /* Send this packet */
     int state=0;
-    state = send_packets_in_1sec(&seed, 0);
-    //printf("30M:on_time:%d\n", state);
+    state = send_packets_in_1sec(&seed, 2, 1);
     return 0;
 }

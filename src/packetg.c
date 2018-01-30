@@ -450,8 +450,8 @@ void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned int amou
     }
 }
 
-int send_packets_in_1sec(struct packet_seed *seed, int show){
-	int i, repeat, parent_repeat, child_repeat, process_count=2, status;
+int send_packets_in_1sec(struct packet_seed *seed, int process_count, int show){
+	int i, repeat, parent_repeat, child_repeat, status;
 	repeat = seed->repeat;
     child_repeat = repeat / process_count;
     parent_repeat = child_repeat +(repeat % process_count);
@@ -466,7 +466,6 @@ int send_packets_in_1sec(struct packet_seed *seed, int show){
             for(i =0;i<child_repeat;i++){
                 send_packet(seed, show);
 	        }
-            //printf("child_stop i:%d\n", i);
             exit(0);
         }else{
             continue;
@@ -475,7 +474,6 @@ int send_packets_in_1sec(struct packet_seed *seed, int show){
     for(i =0;i<parent_repeat;i++){
         send_packet(seed, show);
 	}
-    //printf("parent_stop i:%d\n", i);
     while ((wpid = wait(&status)) > 0);
 	if(seed->last_packet != NULL){
         if(seed->last_packet->repeat == 2){
@@ -489,10 +487,8 @@ int send_packets_in_1sec(struct packet_seed *seed, int show){
         }
 	}
 	end_t = clock();
-    printf("%lf\n",(double)end_t);
 	int result = 0;	
 	if((end_t - start_t) <= CLOCKS_PER_SEC){
-        printf("%lf\n",(double)((end_t - start_t)));
 		result =0;
 	}else{
 		result =1;

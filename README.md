@@ -181,17 +181,33 @@ request_seed.total_len = packet_size;
 
 ## With Constant Data Rate
 
-Sometimes, we have to send our packets constantly(for example, send 30MB of data per second to a host). At thesituation, we can use three functions(`prepare_K_packets`, `prepare_M_packets` and `send_packets_in_1sec`) in `packetg` to make it.
+Sometimes, we have to send our packets constantly(for example, send 30MB of data per second to a host). At the situation, we can use the three functions(`prepare_K_packets`, `prepare_M_packets` and `send_packets_in_1sec`) in `packetg` to make it possible.
 
 [Example code](https://github.com/YanHaoChen/packetg/blob/master/data_rate_testing.c)
 
-The functions of generating payload and sending packets are the main difference between generating single packet and generating packets constantly.
+### Formats of functions
 
+#### prepare_K_packets
 
+* `struct packet_seed` : The base unit in packetg.
+* `char *` : The packet which only has packet header you prepared.
+* `unsigned int` : The amount of data you want to send(Unit: Kbyte). 
+
+#### prepare_M_packets
+
+- `struct packet_seed` : A base unit in packetg.
+- `char *` : A packet which only has packet header you prepared.
+- `unsigned int` : The amount of data you want to send(Unit: Mbyte). 
+
+#### send_packets_in_1sec
+
+- `struct packet_seed` : A base unit in packetg.
+- `int` : The amount of processes you want to use.
+- `int` : The argument is used to indicate showing the data amount  of each time or not.
 
 ```C
 /* payload */
-/* prepare_M_packets will put the packet into the seed.packet and calculate the number packetg needs to repeat. The last packet will be put into seed.last_packet. */
+/* prepare_M_packets will put the packet into the seed.packet and calculate the times packetg needed to repeat. The last packet will be put into seed.last_packet. */
 prepare_M_packets(&seed, packet, 30);
 
 /* Calculate checksum and length */
@@ -200,7 +216,7 @@ package_udp_packet_with_checksum(&seed);
 /* Send this packet */
 /*  state=0 -> In time ; state=1 -> Time out */
 int state=0;
-state = send_packets_in_1sec(&seed, 1);
+state = send_packets_in_1sec(&seed, 2, 1);
 ```
 
  

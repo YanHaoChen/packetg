@@ -96,7 +96,7 @@ int package_udp_packet_with_checksum(struct packet_seed *seed);
 
 /* send */
 int send_packet(struct packet_seed *seed, int show);
-void prepare_K_packets(struct packet_seed *seed,char *packet , unsigned int amount);
-void prepare_M_packets(struct packet_seed *seed,char *packet , unsigned int amount);
-int send_packets_in_1sec(struct packet_seed *seed, int show);
+void prepare_K_packets(struct packet_seed *seed,char *packet, unsigned int amount);
+void prepare_M_packets(struct packet_seed *seed,char *packet, unsigned int amount);
+int send_packets_in_1sec(struct packet_seed *seed, int process_count, int show);
 
